@@ -17,6 +17,7 @@ pub enum SearchMode {
     Random,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum WideRatio {
     // wide ratios
@@ -31,6 +32,7 @@ pub enum WideRatio {
     All,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum PortraitRatio {
     R9x16,
@@ -40,6 +42,7 @@ pub enum PortraitRatio {
     All,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum SquareRatio {
     R1x1,
@@ -50,6 +53,7 @@ pub enum SquareRatio {
     All,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum SearchRatio<A> {
     Wide(WideRatio),

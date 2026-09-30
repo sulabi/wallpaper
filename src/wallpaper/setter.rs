@@ -2,6 +2,7 @@ use super::Wallpaper;
 use super::error::WallpaperError;
 use super::source::{LocalSource, WebSource};
 
+#[allow(dead_code)]
 pub trait WallpaperSetter {
     fn set(&self) -> Result<(), WallpaperError>;
 }

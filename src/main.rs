@@ -1,4 +1,5 @@
 #[tokio::main]
-async fn main() {
-    println!("Hello, world!");
+async fn main() -> Result<(), wallpaper::Error> {
+    println!("Searching random wallpapers");
+    wallpaper::get_wallpapers(wallpaper::SearchMode::Random).await
 }

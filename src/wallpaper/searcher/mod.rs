@@ -4,17 +4,18 @@ use super::{
     source::{LocalSource, WebSource},
 };
 
-mod api;
-mod query;
+pub mod api;
+pub mod query;
 
 use api::WallpaperApi;
-pub use query::{PortraitRatio, Ratio, SearchMode, SearchQuery, SquareRatio, WideRatio};
+pub use query::{SearchQuery, SearchRatio};
 
 #[derive(Default)]
-pub struct WebSearcher<Api> {
-    pub api: Api,
+pub struct WebSearcher<A> {
+    pub api: A,
 }
 
+#[allow(dead_code)]
 pub struct LocalSearcher {}
 
 impl<T: WallpaperApi> WebSearcher<T> {
@@ -30,6 +31,7 @@ impl<T: WallpaperApi> WebSearcher<T> {
     }
 }
 
+#[allow(dead_code)]
 impl LocalSearcher {
     pub async fn search(&self) -> Vec<Wallpaper<LocalSource>> {
         todo!()
@@ -38,7 +40,7 @@ impl LocalSearcher {
 
 #[cfg(test)]
 mod tests {
-    use super::query::{PortraitRatio, SearchQuery, SearchRatio};
+    use super::query::{PortraitRatio, SearchMode, SearchQuery, SearchRatio};
     use super::*;
     use api::wallhaven::Wallhaven;
 

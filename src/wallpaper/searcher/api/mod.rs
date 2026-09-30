@@ -13,3 +13,4 @@ where
 }
 
 pub mod wallhaven;
+pub use wallhaven::Wallhaven;

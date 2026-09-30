@@ -3,8 +3,8 @@ use crate::wallpaper::{
     Wallpaper, WallpaperDetails, WallpaperImage,
     error::WallpaperError,
     searcher::{
-        SearchMode, SearchQuery,
-        query::{PortraitRatio, Ratio, SearchRatio, SquareRatio, WideRatio},
+        SearchQuery,
+        query::{PortraitRatio, Ratio, SearchMode, SearchRatio, SquareRatio, WideRatio},
     },
     source::{WallpaperSource, WebSource},
 };
@@ -137,7 +137,7 @@ impl Wallhaven {
                 SearchMode::Random => "",
             },
             match &query.mode {
-                SearchMode::Query(..) => "date_added",
+                SearchMode::Query(..) => "relavance",
                 SearchMode::Random => "random",
             },
             query.ratio.as_str()
