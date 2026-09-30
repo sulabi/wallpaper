@@ -2,7 +2,10 @@ use super::WallpaperApi;
 use crate::wallpaper::{
     Wallpaper, WallpaperDetails, WallpaperImage,
     error::WallpaperError,
-    searcher::{SearchMode, SearchQuery},
+    searcher::{
+        SearchMode, SearchQuery,
+        query::{PortraitRatio, Ratio, SearchRatio, SquareRatio, WideRatio},
+    },
     source::{WallpaperSource, WebSource},
 };
 use serde::Deserialize;
@@ -26,19 +29,9 @@ struct SearchResponse {
 impl WallpaperApi for Wallhaven {
     async fn search(
         &self,
-        query: &SearchQuery,
+        query: &SearchQuery<Self>,
     ) -> Result<Vec<Wallpaper<WebSource<Self>>>, WallpaperError> {
-        let url = format!(
-            "https://wallhaven.cc/api/v1/search?q={}&sorting={}",
-            match &query.mode {
-                SearchMode::Query(q) => q,
-                SearchMode::Random => "",
-            },
-            match &query.mode {
-                SearchMode::Query(..) => "date_added",
-                SearchMode::Random => "random",
-            },
-        );
+        let url = Self::build_url(query);
 
         let res: SearchResponse = reqwest::get(url).await?.json().await?;
         let data = res.data;
@@ -54,6 +47,63 @@ impl WallpaperSource for WebSource<Wallhaven> {
     }
 }
 
+const WIDE_RATIOS: &str = "16x9,16x10,21x9,32x9,48x9";
+const PORTRAIT_RATIOS: &str = "9x16,9x18,10x16";
+const SQUARE_RATIOS: &str = "1x1,3x2,4x3,5x4";
+const ALL_RATIOS: &str = "16x9,16x10,21x9,32x9,48x9,9x16,9x18,10x16,1x1,3x2,4x3,5x4";
+
+impl Ratio<Wallhaven> for WideRatio {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::R16x9 => "16x9",
+            Self::R16x10 => "16x10",
+
+            Self::R21x9 => "21x9",
+            Self::R32x9 => "32x9",
+            Self::R48x9 => "48x9",
+
+            Self::All => WIDE_RATIOS,
+        }
+    }
+}
+
+impl Ratio<Wallhaven> for PortraitRatio {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::R9x16 => "9x16",
+            Self::R9x18 => "9x18",
+            Self::R10x16 => "10x16",
+
+            Self::All => PORTRAIT_RATIOS,
+        }
+    }
+}
+impl Ratio<Wallhaven> for SquareRatio {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::R1x1 => "1x1",
+            Self::R3x2 => "3x2",
+            Self::R4x3 => "4x3",
+            Self::R5x4 => "5x4",
+
+            Self::All => SQUARE_RATIOS,
+        }
+    }
+}
+
+impl Ratio<Wallhaven> for SearchRatio<Wallhaven> {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Wide(wide_ratio) => wide_ratio.as_str(),
+            Self::Square(square_ratio) => square_ratio.as_str(),
+            Self::Portrait(portrait_ratio) => portrait_ratio.as_str(),
+            Self::All => ALL_RATIOS,
+
+            Self::_Api(..) => unreachable!(),
+        }
+    }
+}
+
 impl Wallhaven {
     fn parse_preview(result: SearchResult) -> Wallpaper<WebSource<Self>> {
         Wallpaper {
@@ -64,5 +114,20 @@ impl Wallhaven {
             },
             image: WallpaperImage {},
         }
+    }
+
+    fn build_url(query: &SearchQuery<Wallhaven>) -> String {
+        format!(
+            "https://wallhaven.cc/api/v1/search?q={}&sorting={}&ratios={}",
+            match &query.mode {
+                SearchMode::Query(q) => q,
+                SearchMode::Random => "",
+            },
+            match &query.mode {
+                SearchMode::Query(..) => "date_added",
+                SearchMode::Random => "random",
+            },
+            query.ratio.as_str()
+        )
     }
 }

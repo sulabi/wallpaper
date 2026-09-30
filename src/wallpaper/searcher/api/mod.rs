@@ -8,7 +8,7 @@ where
 {
     async fn search(
         &self,
-        query: &SearchQuery,
+        query: &SearchQuery<Self>,
     ) -> Result<Vec<Wallpaper<WebSource<Self>>>, WallpaperError>;
 }
 

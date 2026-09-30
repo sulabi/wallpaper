@@ -1,10 +1,14 @@
-use crate::wallpaper::Wallpaper;
-
-use super::error::WallpaperError;
-use super::source::{LocalSource, WebSource};
+use super::{
+    Wallpaper,
+    error::WallpaperError,
+    source::{LocalSource, WebSource},
+};
 
 mod api;
+mod query;
+
 use api::WallpaperApi;
+pub use query::{PortraitRatio, Ratio, SearchMode, SearchQuery, SquareRatio, WideRatio};
 
 #[derive(Default)]
 pub struct WebSearcher<Api> {
@@ -20,7 +24,7 @@ impl<T: WallpaperApi> WebSearcher<T> {
 
     pub async fn search(
         &self,
-        query: &SearchQuery,
+        query: &SearchQuery<T>,
     ) -> Result<Vec<Wallpaper<WebSource<T>>>, WallpaperError> {
         match &query.mode {
             SearchMode::Random => println!("searching random!"),
@@ -37,19 +41,9 @@ impl LocalSearcher {
     }
 }
 
-#[derive(Debug)]
-pub struct SearchQuery {
-    pub mode: SearchMode,
-}
-
-#[derive(Debug)]
-pub enum SearchMode {
-    Query(String),
-    Random,
-}
-
 #[cfg(test)]
 mod tests {
+    use super::query::{PortraitRatio, SearchQuery, SearchRatio};
     use super::*;
     use api::wallhaven::Wallhaven;
 
@@ -57,14 +51,34 @@ mod tests {
     async fn search_wallhaven() -> Result<(), WallpaperError> {
         let searcher = WebSearcher::new(Wallhaven);
 
-        let query = SearchQuery {
-            mode: SearchMode::Query("mountain".into()),
-        };
+        let query: SearchQuery<Wallhaven> =
+            SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All);
 
         let wallpapers = searcher.search(&query).await?;
 
         for wallpaper in &wallpapers {
             println!("wallpaper ({}): {}", wallpaper.id, wallpaper.source.url);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn search_portrait_ratio() -> Result<(), WallpaperError> {
+        let searcher = WebSearcher::new(Wallhaven);
+
+        let query: SearchQuery<Wallhaven> = SearchQuery::new(
+            SearchMode::Random,
+            SearchRatio::Portrait(PortraitRatio::All),
+        );
+
+        let wallpapers = searcher.search(&query).await?;
+
+        if let Some(wallpaper) = wallpapers.first() {
+            println!(
+                "wallpaper portrait ratio ({}): {}",
+                wallpaper.id, wallpaper.source.url
+            );
         }
 
         Ok(())
