@@ -14,4 +14,6 @@ pub struct Wallpaper<S> {
     pub source: S,
 }
 
-pub struct WallpaperImage {}
+pub struct WallpaperImage {
+    pub ratio: f64,
+}

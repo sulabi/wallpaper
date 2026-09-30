@@ -18,6 +18,17 @@ pub struct Wallhaven;
 struct SearchResult {
     url: String,
     id: String,
+
+    #[serde(deserialize_with = "parse_f64")]
+    ratio: f64,
+}
+
+fn parse_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    value.parse().map_err(serde::de::Error::custom)
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,7 +123,9 @@ impl Wallhaven {
                 url: result.url,
                 api: Wallhaven,
             },
-            image: WallpaperImage {},
+            image: WallpaperImage {
+                ratio: result.ratio,
+            },
         }
     }
 
@@ -129,5 +142,23 @@ impl Wallhaven {
             },
             query.ratio.as_str()
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wallpaper::searcher::WebSearcher;
+
+    #[tokio::test]
+    async fn search_wallhaven() -> Result<(), WallpaperError> {
+        let searcher = WebSearcher::new(Wallhaven);
+
+        let query = SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All);
+
+        let wallpapers = searcher.search(&query).await?;
+        assert!(!wallpapers.is_empty(), "No wallpapers received");
+
+        Ok(())
     }
 }

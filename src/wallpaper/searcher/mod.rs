@@ -26,11 +26,6 @@ impl<T: WallpaperApi> WebSearcher<T> {
         &self,
         query: &SearchQuery<T>,
     ) -> Result<Vec<Wallpaper<WebSource<T>>>, WallpaperError> {
-        match &query.mode {
-            SearchMode::Random => println!("searching random!"),
-            SearchMode::Query(query) => println!("searching: `{}`", query),
-        }
-
         self.api.search(query).await
     }
 }
@@ -47,39 +42,28 @@ mod tests {
     use super::*;
     use api::wallhaven::Wallhaven;
 
-    #[tokio::test]
-    async fn search_wallhaven() -> Result<(), WallpaperError> {
-        let searcher = WebSearcher::new(Wallhaven);
-
-        let query: SearchQuery<Wallhaven> =
-            SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All);
-
-        let wallpapers = searcher.search(&query).await?;
-
-        for wallpaper in &wallpapers {
-            println!("wallpaper ({}): {}", wallpaper.id, wallpaper.source.url);
-        }
-
-        Ok(())
+    fn round2(val: f64) -> f64 {
+        (val * 100.).round() / 100.
     }
 
     #[tokio::test]
     async fn search_portrait_ratio() -> Result<(), WallpaperError> {
         let searcher = WebSearcher::new(Wallhaven);
 
-        let query: SearchQuery<Wallhaven> = SearchQuery::new(
+        let query = SearchQuery::new(
             SearchMode::Random,
             SearchRatio::Portrait(PortraitRatio::All),
         );
 
         let wallpapers = searcher.search(&query).await?;
+        let wallpaper = wallpapers.first().expect("No wallpapers received");
 
-        if let Some(wallpaper) = wallpapers.first() {
-            println!(
-                "wallpaper portrait ratio ({}): {}",
-                wallpaper.id, wallpaper.source.url
-            );
-        }
+        assert!(
+            [9. / 16., 9. / 18., 10. / 16.]
+                .iter()
+                .any(|&ratio| round2(ratio) == wallpaper.image.ratio),
+            "Ratio doesnt match portrait"
+        );
 
         Ok(())
     }
