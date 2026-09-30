@@ -1,31 +1,33 @@
-use super::Wallpaper;
+use crate::wallpaper::Wallpaper;
+
 use super::error::WallpaperError;
 use super::source::{LocalSource, WebSource};
 
-pub struct WebSearcher {}
-pub struct LocalSearcher {}
+mod api;
+use api::WallpaperApi;
 
-impl Default for WebSearcher {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Default)]
+pub struct WebSearcher<Api> {
+    pub api: Api,
 }
 
-impl WebSearcher {
-    pub fn new() -> Self {
-        Self {}
+pub struct LocalSearcher {}
+
+impl<T: WallpaperApi> WebSearcher<T> {
+    pub fn new(api: T) -> Self {
+        Self { api }
     }
 
     pub async fn search(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<Wallpaper<WebSource>>, WallpaperError> {
+    ) -> Result<Vec<Wallpaper<WebSource<T>>>, WallpaperError> {
         match &query.mode {
             SearchMode::Random => println!("searching random!"),
             SearchMode::Query(query) => println!("searching: `{}`", query),
         }
 
-        todo!()
+        self.api.search(query).await
     }
 }
 
@@ -49,15 +51,22 @@ pub enum SearchMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use api::wallhaven::Wallhaven;
 
     #[tokio::test]
-    async fn create_search() {
-        let searcher = WebSearcher::new();
+    async fn search_wallhaven() -> Result<(), WallpaperError> {
+        let searcher = WebSearcher::new(Wallhaven);
 
         let query = SearchQuery {
-            mode: SearchMode::Random,
+            mode: SearchMode::Query("mountain".into()),
         };
 
-        let results = searcher.search(&query).await;
+        let wallpapers = searcher.search(&query).await?;
+
+        for wallpaper in &wallpapers {
+            println!("wallpaper ({}): {}", wallpaper.id, wallpaper.source.url);
+        }
+
+        Ok(())
     }
 }

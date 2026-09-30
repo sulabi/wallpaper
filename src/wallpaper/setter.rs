@@ -12,8 +12,10 @@ impl WallpaperSetter for Wallpaper<LocalSource> {
     }
 }
 
-impl WallpaperSetter for Wallpaper<WebSource> {
+impl<A> WallpaperSetter for Wallpaper<WebSource<A>> {
     fn set(&self) -> Result<(), WallpaperError> {
+        let _image = &self.image;
+
         todo!("get bytes and set to wallpaper without download")
     }
 }
