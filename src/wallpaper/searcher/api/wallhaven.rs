@@ -16,7 +16,7 @@ pub struct Wallhaven;
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
 struct SearchResult {
-    url: String,
+    path: String,
     id: String,
 
     #[serde(deserialize_with = "parse_f64")]
@@ -29,6 +29,31 @@ where
 {
     let value = String::deserialize(deserializer)?;
     value.parse().map_err(serde::de::Error::custom)
+}
+
+#[derive(Debug, Deserialize)]
+struct SingleResponse {
+    data: DetailedResult,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(unused)]
+struct DetailedResult {
+    id: String,
+    url: String,
+    path: String,
+    category: String,
+    resolution: String,
+    ratio: String,
+    file_size: u64,
+    file_type: String,
+    created_at: String,
+    uploader: Uploader,
+}
+
+#[derive(Deserialize, Debug)]
+struct Uploader {
+    username: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,9 +77,27 @@ impl WallpaperApi for Wallhaven {
 }
 
 impl WallpaperSource for WebSource<Wallhaven> {
-    async fn load_wallpaper(&self) -> Result<WallpaperDetails, WallpaperError> {
-        // request extra data using self.id
-        todo!()
+    async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError> {
+        let res: SingleResponse =
+            reqwest::get(format!("https://wallhaven.cc/api/v1/w/{}", self.id))
+                .await?
+                .json()
+                .await?;
+
+        let data = res.data;
+
+        Ok(WallpaperDetails {
+            title: None,
+            author: Some(data.uploader.username),
+            category: Some(data.category),
+            created_at: Some(data.created_at),
+
+            url: data.url,
+            resolution: data.resolution,
+            ratio: data.ratio,
+            file_size: data.file_size,
+            file_type: data.file_type,
+        })
     }
 }
 
@@ -118,9 +161,9 @@ impl Ratio<Wallhaven> for SearchRatio<Wallhaven> {
 impl Wallhaven {
     fn parse_preview(result: SearchResult) -> Wallpaper<WebSource<Self>> {
         Wallpaper {
-            id: result.id,
             source: WebSource {
-                url: result.url,
+                id: result.id,
+                image_url: result.path,
                 api: Wallhaven,
             },
             image: WallpaperImage {
@@ -137,7 +180,8 @@ impl Wallhaven {
                 SearchMode::Random => "",
             },
             match &query.mode {
-                SearchMode::Query(..) => "relavance",
+                // order of images
+                SearchMode::Query(..) => "random",
                 SearchMode::Random => "random",
             },
             query.ratio.as_str()

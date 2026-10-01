@@ -4,7 +4,8 @@ use super::error::WallpaperError;
 
 #[allow(dead_code)]
 pub struct WebSource<A> {
-    pub url: String,
+    pub id: String,
+    pub image_url: String,
     pub api: A,
 }
 
@@ -13,25 +14,40 @@ pub struct LocalSource {
     pub path: std::path::PathBuf,
 }
 
-#[allow(async_fn_in_trait, dead_code)]
-pub trait WallpaperSource {
-    async fn load_wallpaper(&self) -> Result<WallpaperDetails, WallpaperError>;
+pub struct MemorySource {
+    pub id: String,
+    pub bytes: Vec<u8>,
 }
 
-#[allow(dead_code)]
-impl<A> Wallpaper<WebSource<A>>
+#[allow(async_fn_in_trait, dead_code)]
+pub trait WallpaperSource {
+    async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError>;
+}
+
+impl<A> WallpaperSource for Wallpaper<WebSource<A>>
 where
     WebSource<A>: WallpaperSource,
 {
-    pub async fn download(self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
-        let _img = self.image;
-        todo!("download and convert to localwallpaper")
+    async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError> {
+        self.source.load_details().await
     }
 }
 
 #[allow(dead_code)]
-impl Wallpaper<LocalSource> {
-    pub fn delete(self) -> Result<(), WallpaperError> {
-        todo!("delete and nothing")
+impl<A> Wallpaper<WebSource<A>> {
+    pub async fn fetch(&self) -> Result<Wallpaper<MemorySource>, WallpaperError> {
+        let bytes = reqwest::get(&self.source.image_url)
+            .await?
+            .bytes()
+            .await?
+            .to_vec();
+
+        Ok(Wallpaper {
+            image: self.image,
+            source: MemorySource {
+                bytes,
+                id: self.source.id.clone(),
+            },
+        })
     }
 }
