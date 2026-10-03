@@ -1,3 +1,7 @@
+use configfs::ConfigFile;
+
+use crate::wallpaper::config::{WallpaperConfig, WallpaperPath};
+
 use super::{MemorySource, Wallpaper, WallpaperError, WallpaperSetter};
 
 impl WallpaperSetter for Wallpaper<MemorySource> {
@@ -14,6 +18,10 @@ impl WallpaperSetter for Wallpaper<MemorySource> {
         if !status.success() {
             return Err(WallpaperError::SetterError(status));
         }
+
+        WallpaperConfig::update(|conf| {
+            conf.wallpaper = Some(WallpaperPath::Url(self.source.image_url.clone()));
+        })?;
 
         Ok(())
     }

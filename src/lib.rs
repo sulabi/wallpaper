@@ -8,6 +8,10 @@ use wallpaper::{
     searcher::{SearchRatio, WebSearcher, api::Wallhaven, query::SearchQuery},
 };
 
+pub fn init_conf() -> Result<(), WallpaperError> {
+    WallpaperConfig::setup()
+}
+
 pub async fn search_wallpapers(
     mode: SearchMode,
 ) -> Result<Vec<Wallpaper<WebSource<Wallhaven>>>, WallpaperError> {
@@ -23,4 +27,4 @@ pub use wallpaper::error::WallpaperError as Error;
 pub use wallpaper::setter::WallpaperSetter;
 pub use wallpaper::source::WallpaperSource;
 
-use crate::wallpaper::source::WebSource;
+use crate::wallpaper::{config::WallpaperConfig, source::WebSource};

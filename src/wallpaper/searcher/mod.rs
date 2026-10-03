@@ -10,7 +10,6 @@ pub mod query;
 use api::WallpaperApi;
 pub use query::{SearchQuery, SearchRatio};
 
-#[derive(Default)]
 pub struct WebSearcher<A> {
     pub api: A,
 }

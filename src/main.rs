@@ -3,6 +3,7 @@ use wallpaper::{WallpaperSetter, WallpaperSource};
 #[tokio::main]
 async fn main() -> Result<(), wallpaper::Error> {
     println!("Searching random wallpapers");
+    wallpaper::init_conf()?;
     let wallpapers =
         wallpaper::search_wallpapers(wallpaper::SearchMode::Query("itachi".into())).await?;
 

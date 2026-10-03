@@ -111,14 +111,25 @@ dependencies = [
 
 [[package]]
 name = "configfs"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c092957425ff93a13b267cc289349c17ef75e5ed9052afebe6b7d17af1667c9"
+checksum = "f39d5ab29e981a27f7a86bbc331188a6ee6edc7c693dde997832ed3d9f42a6ae"
 dependencies = [
+ "configfs-derive",
  "dirs 6.0.0",
  "serde",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "configfs-derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7ca006a5937b7ae9233c4592c470ee2da8ce23a437a5eaef8a8afb0a630d2d"
+dependencies = [
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]

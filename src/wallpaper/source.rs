@@ -19,6 +19,8 @@ pub struct LocalSource {
 pub struct MemorySource {
     pub id: String,
     pub bytes: Vec<u8>,
+    // NOTE: TEMP
+    pub image_url: String,
 }
 
 #[allow(async_fn_in_trait, dead_code)]
@@ -49,6 +51,7 @@ impl<A> Wallpaper<WebSource<A>> {
             source: MemorySource {
                 bytes,
                 id: self.source.id.clone(),
+                image_url: self.source.image_url.clone(),
             },
         })
     }
