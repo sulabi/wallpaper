@@ -10,4 +10,7 @@ pub enum WallpaperError {
 
     #[error("awww exited with status: {0}")]
     SetterError(std::process::ExitStatus),
+
+    #[error(transparent)]
+    ConfigError(#[from] configfs::ConfigError)
 }
