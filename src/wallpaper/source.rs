@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::wallpaper::{Wallpaper, WallpaperDetails};
 
 use super::error::WallpaperError;
@@ -49,5 +51,11 @@ impl<A> Wallpaper<WebSource<A>> {
                 id: self.source.id.clone(),
             },
         })
+    }
+}
+
+impl Wallpaper<MemorySource> {
+    pub async fn download() -> Result<PathBuf, WallpaperError> {
+        todo!()
     }
 }
