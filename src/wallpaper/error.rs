@@ -12,5 +12,5 @@ pub enum WallpaperError {
     SetterError(std::process::ExitStatus),
 
     #[error(transparent)]
-    ConfigError(#[from] configfs::ConfigError)
+    ConfigError(#[from] configfs::ConfigError),
 }
