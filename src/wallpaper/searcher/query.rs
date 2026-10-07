@@ -2,9 +2,11 @@ use crate::wallpaper::searcher::api::WallpaperApi;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SearchQuery<A: WallpaperApi> {
     pub mode: SearchMode,
     pub ratio: SearchRatio<A>,
+    pub tags: String,
 
     _api: PhantomData<A>,
 }
@@ -70,10 +72,12 @@ pub trait Ratio<A: WallpaperApi> {
 }
 
 impl<A: WallpaperApi> SearchQuery<A> {
-    pub fn new(mode: SearchMode, ratio: SearchRatio<A>) -> SearchQuery<A> {
+    // TODO: change how this is built
+    pub fn new(mode: SearchMode, ratio: SearchRatio<A>, category: &str) -> SearchQuery<A> {
         Self {
             mode,
             ratio,
+            tags: category.into(),
             _api: PhantomData,
         }
     }

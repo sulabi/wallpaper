@@ -10,7 +10,7 @@ use crate::wallpaper::{
 };
 use serde::Deserialize;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Wallhaven;
 
 #[derive(Debug, Deserialize)]
@@ -160,15 +160,20 @@ impl Ratio<Wallhaven> for SearchRatio<Wallhaven> {
 
 impl Wallhaven {
     fn parse_preview(result: SearchResult) -> Wallpaper<WebSource<Self>> {
+        let id = &result.id;
         Wallpaper {
             source: WebSource {
-                id: result.id,
+                id: id.into(),
                 image_url: result.path,
                 api: Wallhaven,
             },
             image: WallpaperImage {
                 ratio: result.ratio,
+                format: None,
+                name: None,
             },
+            // TODO: populate tags func?
+            tags: vec![],
         }
     }
 
@@ -198,7 +203,7 @@ mod tests {
     async fn search_wallhaven() -> Result<(), WallpaperError> {
         let searcher = WebSearcher::new(Wallhaven);
 
-        let query = SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All);
+        let query = SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All, "");
 
         let wallpapers = searcher.search(&query).await?;
         assert!(!wallpapers.is_empty(), "No wallpapers received");

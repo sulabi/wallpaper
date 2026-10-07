@@ -4,14 +4,14 @@ use super::Wallpaper;
 use rusqlite::{Connection, Result};
 use std::path::Path;
 
-pub fn init(path: &Path) -> Result<()> {
+pub fn init(path: &Path) -> Result<Connection> {
     println!("setting path={:?}", path);
     let con = Connection::open(path)?;
     con.execute("PRAGMA foreign_keys = ON", ())?;
 
     create_tables(&con)?;
 
-    Ok(())
+    Ok(con)
 }
 
 fn create_tables(connection: &Connection) -> Result<()> {
@@ -64,19 +64,18 @@ pub fn add_wallpaper(connection: &Connection, wallpaper: Wallpaper<LocalSource>)
 
     let wallpaper_id = connection.last_insert_rowid();
 
-    for category in &wallpaper.categories {
+    for tag in &wallpaper.tags {
         connection.execute(
             "INSERT INTO TAG (name)
             VALUES (?1)
             ON CONFLICT(name) DO NOTHING",
-            [category.to_str()],
+            [tag],
         )?;
 
-        let tag_id: i64 = connection.query_row(
-            "SELECT id FROM Tag WHERE name = ?1",
-            [category.to_str()],
-            |row| row.get(0),
-        )?;
+        let tag_id: i64 =
+            connection.query_row("SELECT id FROM Tag WHERE name = ?1", [tag], |row| {
+                row.get(0)
+            })?;
 
         connection.execute(
             "INSERT INTO Collection (wallpaper_id, tag_id)

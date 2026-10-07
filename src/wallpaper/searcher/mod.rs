@@ -54,6 +54,7 @@ mod tests {
         let query = SearchQuery::new(
             SearchMode::Random,
             SearchRatio::Portrait(PortraitRatio::All),
+            "",
         );
 
         let wallpapers = searcher.search(&query).await?;

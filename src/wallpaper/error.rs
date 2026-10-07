@@ -13,4 +13,10 @@ pub enum WallpaperError {
 
     #[error(transparent)]
     ConfigError(#[from] configfs::ConfigError),
+
+    #[error("Wallpaper path not found")]
+    NoWallpaper,
+
+    #[error(transparent)]
+    SqliteError(#[from] rusqlite::Error),
 }

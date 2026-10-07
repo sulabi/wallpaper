@@ -1,11 +1,15 @@
+use image::ImageFormat;
+use serde::{Deserialize, Serialize};
+
 pub mod config;
+pub mod db;
 pub mod error;
 pub mod searcher;
 pub mod setter;
 pub mod source;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WallpaperDetails {
     pub title: Option<String>,
     pub author: Option<String>,
@@ -22,11 +26,14 @@ pub struct WallpaperDetails {
 #[allow(dead_code)]
 pub struct Wallpaper<S> {
     pub image: WallpaperImage,
+    pub tags: Vec<String>,
     pub source: S,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct WallpaperImage {
     pub ratio: f64,
+    pub format: Option<ImageFormat>,
+    pub name: Option<String>,
 }

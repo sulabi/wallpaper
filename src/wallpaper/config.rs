@@ -12,7 +12,7 @@ pub struct WallpaperConfig {
     pub wallpaper: Option<WallpaperPath>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum WallpaperPath {
     #[serde(rename = "url")]
     Url(String),
@@ -28,11 +28,14 @@ pub struct SearcherConfig {}
 #[allow(dead_code)]
 pub struct SetterConfig {
     /// Allow for a custom wallpaper path
-    pub wallpaper_path: Option<PathBuf>,
+    pub wallpapers_path: Option<PathBuf>,
 
     /// Allow the user to have their own sub folders, named after category of the wallpapers
     /// included
     pub wallpaper_categories: Option<Vec<String>>,
+
+    /// save into `wallpapers_path/category`
+    pub save_with_category: Option<bool>,
 }
 
 impl Default for SetterConfig {
@@ -41,8 +44,9 @@ impl Default for SetterConfig {
         let wallpaper_dir = pictures_dir.map(|pics| pics.join("wallpapers"));
 
         SetterConfig {
-            wallpaper_path: wallpaper_dir,
+            wallpapers_path: wallpaper_dir,
             wallpaper_categories: Some(vec!["anime".into()]),
+            save_with_category: Some(true)
         }
     }
 }
@@ -59,7 +63,7 @@ impl WallpaperConfig {
             ..
         } = &wall_config;
 
-        if let Some(path) = &setter.wallpaper_path
+        if let Some(path) = &setter.wallpapers_path
             && !path.exists()
         {
             println!("Creating default wallpaper directory");

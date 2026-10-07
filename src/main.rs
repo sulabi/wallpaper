@@ -1,22 +1,23 @@
-use wallpaper::{WallpaperSetter, WallpaperSource};
+use wallpaper::{WallpaperSetter, WallpaperSource, db};
 
 #[tokio::main]
 async fn main() -> Result<(), wallpaper::Error> {
     println!("Searching random wallpapers");
-    wallpaper::init_conf()?;
+    let connection = wallpaper::init()?;
+
     let wallpapers =
         wallpaper::search_wallpapers(wallpaper::SearchMode::Query("itachi".into())).await?;
 
-    if let Some(wallpaper) = wallpapers.first() {
-        wallpaper.set_wallpaper().await?;
-        println!(
-            "set wallpaper {}: {}",
-            wallpaper.source.id, wallpaper.source.image_url
-        );
+    if let Some(wallpaper) = wallpapers.into_iter().next() {
+        let wallpaper = wallpaper.set_wallpaper().await?;
+        let information = wallpaper.source.origin.load_details().await;
+        println!("wallpaper source: {:?}", wallpaper.source);
+        println!("wallpaper information: {:?}", information);
 
-        let information = wallpaper.load_details().await?;
+        println!("downloading wallpaper ...");
+        let saved_wallpaper = wallpaper.save().await?;
 
-        dbg!(information);
+        db::add_wallpaper(&connection, saved_wallpaper)?;
     }
 
     Ok(())
