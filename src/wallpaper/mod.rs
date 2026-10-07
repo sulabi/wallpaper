@@ -12,7 +12,6 @@ pub mod source;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WallpaperDetails {
     // NOTE: still not sure what details i should be storing as metadata
-
     pub title: Option<String>,
     pub author: Option<String>,
     pub created_at: Option<String>,
