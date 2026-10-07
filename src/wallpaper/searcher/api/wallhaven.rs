@@ -49,6 +49,17 @@ struct DetailedResult {
     file_type: String,
     created_at: String,
     uploader: Uploader,
+
+    tags: Vec<Tag>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct Tag {
+    name: String,
+    alias: String,
+    category: String,
+    purity: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -89,8 +100,8 @@ impl WallpaperSource for WebSource<Wallhaven> {
         Ok(WallpaperDetails {
             title: None,
             author: Some(data.uploader.username),
-            category: Some(data.category),
             created_at: Some(data.created_at),
+            tags: data.tags.into_iter().map(|tag| tag.name).collect(),
 
             url: data.url,
             resolution: data.resolution,
@@ -170,7 +181,8 @@ impl Wallhaven {
             image: WallpaperImage {
                 ratio: result.ratio,
                 format: None,
-                name: None,
+                name: format!("wallhaven-{id}"),
+                metadata: None,
             },
             // TODO: populate tags func?
             tags: vec![],

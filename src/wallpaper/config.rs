@@ -20,22 +20,16 @@ pub enum WallpaperPath {
     Path(PathBuf),
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 #[allow(dead_code)]
 pub struct SearcherConfig {}
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[allow(dead_code)]
 pub struct SetterConfig {
     /// Allow for a custom wallpaper path
     pub wallpapers_path: Option<PathBuf>,
-
-    /// Allow the user to have their own sub folders, named after category of the wallpapers
-    /// included
-    pub wallpaper_categories: Option<Vec<String>>,
-
-    /// save into `wallpapers_path/category`
-    pub save_with_category: Option<bool>,
+    // NOTE: this is required
 }
 
 impl Default for SetterConfig {
@@ -45,8 +39,6 @@ impl Default for SetterConfig {
 
         SetterConfig {
             wallpapers_path: wallpaper_dir,
-            wallpaper_categories: Some(vec!["anime".into()]),
-            save_with_category: Some(true)
         }
     }
 }

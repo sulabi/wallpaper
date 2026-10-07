@@ -1,3 +1,5 @@
+use crate::WallpaperSource;
+
 use super::{
     Wallpaper,
     error::WallpaperError,
@@ -22,7 +24,10 @@ impl WallpaperSetter for Wallpaper<LocalSource> {
     }
 }
 
-impl<A> WallpaperSetter for Wallpaper<WebSource<A>> {
+impl<A> WallpaperSetter for Wallpaper<WebSource<A>>
+where
+    WebSource<A>: WallpaperSource,
+{
     type Source = MemorySource<WebSource<A>>;
 
     async fn set_wallpaper(self) -> Result<Wallpaper<Self::Source>, WallpaperError> {

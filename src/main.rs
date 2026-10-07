@@ -17,6 +17,7 @@ async fn main() -> Result<(), wallpaper::Error> {
         println!("downloading wallpaper ...");
         let saved_wallpaper = wallpaper.save().await?;
 
+        println!("saving to db..");
         db::add_wallpaper(&connection, saved_wallpaper)?;
     }
 

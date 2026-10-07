@@ -19,4 +19,12 @@ pub enum WallpaperError {
 
     #[error(transparent)]
     SqliteError(#[from] rusqlite::Error),
+
+    #[error("No specified wallpapers folder")]
+    NoWallpapersFolder,
+
+    #[error("Failed to convert to image")]
+    ImageError(#[from] image::ImageError),
 }
+
+// TODO: make this cleaner

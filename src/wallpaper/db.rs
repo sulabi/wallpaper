@@ -48,8 +48,8 @@ fn create_tables(connection: &Connection) -> Result<()> {
 
 pub fn add_wallpaper(connection: &Connection, wallpaper: Wallpaper<LocalSource>) -> Result<()> {
     let json = wallpaper
-        .source
-        .details
+        .image
+        .metadata
         .as_ref()
         .map(|meta| serde_json::to_string(meta).unwrap_or_default());
 

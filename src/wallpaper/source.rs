@@ -5,7 +5,6 @@ use crate::wallpaper::{
 };
 use configfs::ConfigFile;
 use std::fmt::Debug;
-use std::path::PathBuf;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -19,7 +18,6 @@ pub struct WebSource<A> {
 #[derive(Debug)]
 pub struct LocalSource {
     pub path: std::path::PathBuf,
-    pub details: Option<WallpaperDetails>,
 }
 
 pub struct MemorySource<S> {
@@ -66,28 +64,42 @@ where
     }
 }
 
+impl<A> WallpaperSource for MemorySource<WebSource<A>>
+where
+    WebSource<A>: WallpaperSource,
+{
+    async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError> {
+        self.origin.load_details().await
+    }
+}
+
 #[allow(dead_code)]
-impl<A> Wallpaper<WebSource<A>> {
+impl<A> Wallpaper<WebSource<A>>
+where
+    WebSource<A>: WallpaperSource,
+{
     pub async fn fetch(self) -> Result<Wallpaper<MemorySource<WebSource<A>>>, WallpaperError> {
         let bytes = reqwest::get(&self.source.image_url)
             .await?
             .bytes()
             .await?
             .to_vec();
+        let other_details = self.load_details().await?;
 
-        let format = image::guess_format(&bytes);
+        let format = image::guess_format(&bytes).ok();
 
         Ok(Wallpaper {
             image: WallpaperImage {
                 ratio: self.image.ratio,
-                name: Some(format!("wallhaven-{}", self.source.id)),
-                format: format.ok(),
+                name: format!("wallhaven-{}", self.source.id),
+                format,
+                metadata: Some(other_details.clone()),
             },
             source: MemorySource {
                 origin: self.source,
                 bytes,
             },
-            tags: self.tags,
+            tags: other_details.tags,
         })
     }
 }
@@ -98,12 +110,12 @@ where
 {
     pub async fn download(self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
         let fetched_wallpaper = self.fetch().await?;
-        let wallpaper_details = fetched_wallpaper.source.origin.load_details().await.ok();
+        let other_data = fetched_wallpaper.source.origin.load_details().await?;
         let downloaded_wallpaper = fetched_wallpaper.save().await?;
 
         Ok(Wallpaper {
             image: fetched_wallpaper.image,
-            tags: fetched_wallpaper.tags,
+            tags: other_data.tags,
             source: downloaded_wallpaper.source,
         })
     }
@@ -117,20 +129,21 @@ impl<A> Wallpaper<MemorySource<WebSource<A>>> {
         let wallpapers_folder = setter_conf
             .wallpapers_path
             .as_ref()
-            .ok_or(WallpaperError::NoWallpaper)?;
+            .ok_or(WallpaperError::NoWallpapersFolder)?;
 
-        let filename = self.image.name.as_deref().unwrap_or(&self.source.origin.id);
-        let path = wallpapers_folder.join(filename);
+        let filename = self.image.name.clone();
+        let mut path = wallpapers_folder.join(filename);
 
         std::fs::create_dir_all(wallpapers_folder)?;
+
+        if let Some(format) = self.image.format {
+            path.set_extension(format.extensions_str()[0]);
+        }
         std::fs::write(&path, &self.source.bytes)?;
 
         Ok(Wallpaper {
             image: self.image.clone(),
-            source: LocalSource {
-                path,
-                details: None,
-            },
+            source: LocalSource { path },
             tags: self.tags.clone(),
         })
     }

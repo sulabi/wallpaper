@@ -9,12 +9,14 @@ pub mod setter;
 pub mod source;
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WallpaperDetails {
+    // NOTE: still not sure what details i should be storing as metadata
+
     pub title: Option<String>,
     pub author: Option<String>,
-    pub category: Option<String>,
     pub created_at: Option<String>,
+    pub tags: Vec<String>,
 
     pub url: String,
     pub resolution: String,
@@ -35,5 +37,6 @@ pub struct Wallpaper<S> {
 pub struct WallpaperImage {
     pub ratio: f64,
     pub format: Option<ImageFormat>,
-    pub name: Option<String>,
+    pub name: String,
+    pub metadata: Option<WallpaperDetails>,
 }
