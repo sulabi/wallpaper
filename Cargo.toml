@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-configfs = { version = "0.2.2", features = ["system-dirs", "derive"] }
+configfs = { path = "../configfs/", features = ["derive", "system-dirs"] }
 dirs = "7.0.0"
+image = "0.25.10"
 reqwest = { version = "0.13.5", features = ["json"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 tempfile = "3.27.0"
