@@ -19,7 +19,7 @@ fn create_tables(connection: &Connection) -> Result<()> {
         "
         CREATE TABLE IF NOT EXISTS Wallpaper (
             id INTEGER PRIMARY KEY,
-            path TEXT not null,
+            path TEXT NOT NULL UNIQUE,
             metadata TEXT
         );
 
@@ -42,6 +42,8 @@ fn create_tables(connection: &Connection) -> Result<()> {
                 REFERENCES Tag(id)
                 ON DELETE CASCADE
         );
+
+        CREATE INDEX idx_collection_tag ON Collection(tag_id)
         ",
     )
 }
