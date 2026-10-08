@@ -1,6 +1,5 @@
 mod wallpaper;
 
-use configfs::ConfigFile;
 use rusqlite::Connection;
 pub use wallpaper::searcher::query::SearchMode;
 
@@ -12,17 +11,17 @@ use wallpaper::{
 };
 
 fn init_db() -> Result<Connection, WallpaperError> {
-    // TODO: saving database file in .config file is not optimal, save into .local/share instead
-    let dir = WallpaperConfig::config_directory();
-    let (path, is_dir) = dir.resolve()?;
+    if let Some(data_dir) = dirs::data_dir() {
+        let folder = data_dir.join("wallpaper_app");
+        if !folder.exists() {
+            std::fs::create_dir(&folder)?;
+        }
+        let path = folder.join("wallpapers.db");
 
-    let db_file = if is_dir {
-        path.join("wallpapers.db")
+        db::init(&path).map_err(WallpaperError::SqliteError)
     } else {
-        path.parent().unwrap().join("wallpapers.db")
-    };
-
-    db::init(&db_file).map_err(WallpaperError::SqliteError)
+        Err(WallpaperError::DatabaseCreationError)
+    }
 }
 
 fn init_conf() -> Result<(), WallpaperError> {

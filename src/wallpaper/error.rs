@@ -25,6 +25,10 @@ pub enum WallpaperError {
 
     #[error("Failed to convert to image")]
     ImageError(#[from] image::ImageError),
+
+    #[error("Failed to create database")]
+    DatabaseCreationError,
 }
 
 // TODO: make this cleaner
+// ..yea it's getting bad
