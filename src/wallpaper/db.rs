@@ -56,39 +56,42 @@ pub fn add_wallpaper(connection: &Connection, wallpaper: Wallpaper<LocalSource>)
         .as_ref()
         .map(|meta| serde_json::to_string(meta).unwrap_or_default());
 
-    connection.execute(
+    let tx = connection.unchecked_transaction()?;
+
+    let wallpaper_id: i64 = tx.query_row(
         "INSERT INTO Wallpaper (path, metadata)
-        VALUES (?1, ?2)",
+        VALUES (?1, ?2)
+        ON CONFLICT(path) DO UPDATE SET metadata = excluded.metadata
+        RETURNING ID
+        ",
         (
             wallpaper.source.path.to_string_lossy(),
             json.unwrap_or("{}".into()),
         ),
+        |row| row.get(0),
     )?;
 
-    let wallpaper_id = connection.last_insert_rowid();
-
     for tag in &wallpaper.tags {
-        connection.execute(
+        tx.execute(
             "INSERT INTO TAG (name)
             VALUES (?1)
             ON CONFLICT(name) DO NOTHING",
             [tag],
         )?;
 
-        let tag_id: i64 =
-            connection.query_row("SELECT id FROM Tag WHERE name = ?1", [tag], |row| {
-                row.get(0)
-            })?;
+        let tag_id: i64 = tx.query_row("SELECT id FROM Tag WHERE name = ?1", [tag], |row| {
+            row.get(0)
+        })?;
 
-        connection.execute(
-            "INSERT INTO Collection (wallpaper_id, tag_id)
+        tx.execute(
+            "INSERT OR IGNORE INTO Collection (wallpaper_id, tag_id)
             VALUES (?1, ?2)
             ",
             (wallpaper_id, tag_id),
         )?;
     }
 
-    Ok(())
+    tx.commit()
 }
 
 pub fn search_wallpaper(
