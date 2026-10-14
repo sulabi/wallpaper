@@ -1,5 +1,7 @@
+use rusqlite::Connection;
+
 use crate::{
-    WallpaperSource,
+    WallpaperSource, db,
     wallpaper::{
         Wallpaper, WallpaperDetails,
         error::WallpaperError,
@@ -9,20 +11,22 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Local;
+pub struct Local<'a> {
+    pub connection: &'a Connection,
+}
 
-impl WallpaperApi for Local {
+impl WallpaperApi for Local<'_> {
     type Source = LocalSource;
 
     async fn search(
         &self,
-        _query: &SearchQuery<Self>,
+        query: &SearchQuery<Self>,
     ) -> Result<Vec<Wallpaper<Self::Source>>, WallpaperError> {
-        todo!()
+        db::search_wallpaper(self.connection, &query.tags, 10).map_err(WallpaperError::SqliteError)
     }
 }
 
-impl WallpaperSource for Local {
+impl WallpaperSource for Local<'_> {
     async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError> {
         todo!()
     }

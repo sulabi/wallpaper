@@ -22,7 +22,16 @@ async fn main() -> Result<(), wallpaper::Error> {
 
     match source.as_str() {
         "web" => search_set(api::Wallhaven, query, &connection).await,
-        "local" => search_set(api::Local, query, &connection).await,
+        "local" => {
+            search_set(
+                api::Local {
+                    connection: &connection,
+                },
+                query,
+                &connection,
+            )
+            .await
+        }
         other => {
             eprintln!("unknown source: {other}");
             Ok(())
