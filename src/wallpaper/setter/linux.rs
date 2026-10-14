@@ -2,15 +2,14 @@ use super::{MemorySource, Wallpaper, WallpaperError, WallpaperSetter};
 use crate::wallpaper::{config::WallpaperConfig, source::AsWallpaperPath};
 use configfs::ConfigFile;
 
-impl<S> WallpaperSetter for Wallpaper<MemorySource<S>>
-where
-    S: AsWallpaperPath,
-{
+impl<S: AsWallpaperPath> WallpaperSetter for Wallpaper<MemorySource<S>> {
     type Source = MemorySource<S>;
 
     async fn set_wallpaper(self) -> Result<Wallpaper<Self::Source>, WallpaperError> {
         let tmpfile = tempfile::NamedTempFile::new()?;
         std::fs::write(tmpfile.path(), &self.source.bytes)?;
+
+        println!("setting {}", tmpfile.path().display());
 
         // TODO: make this a wrapper and configurable for other OS
         // TODO: also allow other args

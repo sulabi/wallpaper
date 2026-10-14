@@ -74,10 +74,12 @@ struct SearchResponse {
 }
 
 impl WallpaperApi for Wallhaven {
+    type Source = WebSource<Self>;
+
     async fn search(
         &self,
         query: &SearchQuery<Self>,
-    ) -> Result<Vec<Wallpaper<WebSource<Self>>>, WallpaperError> {
+    ) -> Result<Vec<Wallpaper<Self::Source>>, WallpaperError> {
         let url = Self::build_url(query);
 
         let res: SearchResponse = reqwest::get(url).await?.json().await?;
@@ -209,13 +211,13 @@ impl Wallhaven {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::wallpaper::searcher::WebSearcher;
+    use crate::wallpaper::searcher::Searcher;
 
     #[tokio::test]
     async fn search_wallhaven() -> Result<(), WallpaperError> {
-        let searcher = WebSearcher::new(Wallhaven);
+        let searcher = Searcher::new(Wallhaven);
 
-        let query = SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All, "");
+        let query = SearchQuery::new(SearchMode::Query("mountain".into()), SearchRatio::All);
 
         let wallpapers = searcher.search(&query).await?;
         assert!(!wallpapers.is_empty(), "No wallpapers received");

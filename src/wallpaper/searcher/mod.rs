@@ -1,8 +1,4 @@
-use super::{
-    Wallpaper,
-    error::WallpaperError,
-    source::{LocalSource, WebSource},
-};
+use super::{Wallpaper, error::WallpaperError};
 
 pub mod api;
 pub mod query;
@@ -10,14 +6,12 @@ pub mod query;
 use api::WallpaperApi;
 pub use query::{SearchQuery, SearchRatio};
 
-pub struct WebSearcher<A> {
+#[allow(dead_code)]
+pub struct Searcher<A> {
     pub api: A,
 }
 
-#[allow(dead_code)]
-pub struct LocalSearcher {}
-
-impl<T: WallpaperApi> WebSearcher<T> {
+impl<T: WallpaperApi> Searcher<T> {
     pub fn new(api: T) -> Self {
         Self { api }
     }
@@ -25,15 +19,8 @@ impl<T: WallpaperApi> WebSearcher<T> {
     pub async fn search(
         &self,
         query: &SearchQuery<T>,
-    ) -> Result<Vec<Wallpaper<WebSource<T>>>, WallpaperError> {
+    ) -> Result<Vec<Wallpaper<T::Source>>, WallpaperError> {
         self.api.search(query).await
-    }
-}
-
-#[allow(dead_code)]
-impl LocalSearcher {
-    pub async fn search(&self) -> Vec<Wallpaper<LocalSource>> {
-        todo!()
     }
 }
 
@@ -49,12 +36,11 @@ mod tests {
 
     #[tokio::test]
     async fn search_portrait_ratio() -> Result<(), WallpaperError> {
-        let searcher = WebSearcher::new(Wallhaven);
+        let searcher = Searcher::new(Wallhaven);
 
         let query = SearchQuery::new(
             SearchMode::Random,
             SearchRatio::Portrait(PortraitRatio::All),
-            "",
         );
 
         let wallpapers = searcher.search(&query).await?;

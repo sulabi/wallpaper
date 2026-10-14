@@ -1,4 +1,4 @@
-use crate::WallpaperSource;
+use crate::{WallpaperSource, source::Fetch};
 
 use super::{
     Wallpaper,
@@ -17,22 +17,20 @@ pub trait WallpaperSetter {
 }
 
 impl WallpaperSetter for Wallpaper<LocalSource> {
-    type Source = MemorySource<LocalSource>;
+    type Source = LocalSource;
 
     async fn set_wallpaper(self) -> Result<Wallpaper<Self::Source>, WallpaperError> {
         todo!("set wallpaper")
     }
 }
 
-impl<A> WallpaperSetter for Wallpaper<WebSource<A>>
+impl<S> WallpaperSetter for Wallpaper<WebSource<S>>
 where
-    WebSource<A>: WallpaperSource,
+    WebSource<S>: WallpaperSource,
 {
-    type Source = MemorySource<WebSource<A>>;
+    type Source = MemorySource<WebSource<S>>;
 
     async fn set_wallpaper(self) -> Result<Wallpaper<Self::Source>, WallpaperError> {
-        let wallpaper = self.fetch().await?;
-
-        wallpaper.set_wallpaper().await
+        self.fetch().await?.set_wallpaper().await
     }
 }

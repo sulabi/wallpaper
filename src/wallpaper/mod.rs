@@ -32,7 +32,6 @@ pub struct Wallpaper<S> {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
 pub struct WallpaperImage {
     pub ratio: f64,
     pub format: Option<ImageFormat>,

@@ -11,6 +11,20 @@ pub struct SearchQuery<A: WallpaperApi> {
     _api: PhantomData<A>,
 }
 
+pub struct SearchParams<T: WallpaperApi> {
+    pub search_mode: SearchMode,
+    pub search_api: T,
+}
+
+impl<T: WallpaperApi> SearchParams<T> {
+    pub fn new(search_mode: SearchMode, search_api: T) -> Self {
+        Self {
+            search_mode,
+            search_api,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub enum SearchMode {
     Query(String),
@@ -72,12 +86,16 @@ pub trait Ratio<A: WallpaperApi> {
 }
 
 impl<A: WallpaperApi> SearchQuery<A> {
-    // TODO: change how this is built
-    pub fn new(mode: SearchMode, ratio: SearchRatio<A>, category: &str) -> SearchQuery<A> {
+    pub fn new(mode: SearchMode, ratio: SearchRatio<A>) -> Self {
+        let tags = match &mode {
+            SearchMode::Query(q) => q.trim().to_owned(),
+            _ => String::new(),
+        };
+
         Self {
             mode,
             ratio,
-            tags: category.into(),
+            tags,
             _api: PhantomData,
         }
     }

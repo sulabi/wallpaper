@@ -43,12 +43,38 @@ pub trait AsWallpaperPath {
     fn as_wallpaper_path(&self) -> WallpaperPath;
 }
 
+#[allow(async_fn_in_trait)]
+pub trait Save: Sized {
+    async fn save(
+        mem_src: Wallpaper<MemorySource<Self>>,
+    ) -> Result<Wallpaper<LocalSource>, WallpaperError>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Fetch {
+    type Origin: Save;
+    async fn fetch(self) -> Result<Wallpaper<MemorySource<Self::Origin>>, WallpaperError>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Download: Fetch + Sized {
+    async fn download(self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
+        self.fetch().await?.save().await
+    }
+}
+impl<T: Fetch> Download for T {}
+
+impl<S: Save> Wallpaper<MemorySource<S>> {
+    pub async fn save(self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
+        S::save(self).await
+    }
+}
+
 impl<A> AsWallpaperPath for WebSource<A> {
     fn as_wallpaper_path(&self) -> WallpaperPath {
         WallpaperPath::Url(self.image_url.clone())
     }
 }
-
 impl AsWallpaperPath for LocalSource {
     fn as_wallpaper_path(&self) -> WallpaperPath {
         WallpaperPath::Path(self.path.clone())
@@ -63,7 +89,6 @@ where
         self.source.load_details().await
     }
 }
-
 impl<A> WallpaperSource for MemorySource<WebSource<A>>
 where
     WebSource<A>: WallpaperSource,
@@ -72,13 +97,21 @@ where
         self.origin.load_details().await
     }
 }
+impl WallpaperSource for LocalSource {
+    async fn load_details(&self) -> Result<WallpaperDetails, WallpaperError> {
+        todo!()
+    }
+}
 
-#[allow(dead_code)]
-impl<A> Wallpaper<WebSource<A>>
+// web fetch + save
+
+impl<A> Fetch for Wallpaper<WebSource<A>>
 where
     WebSource<A>: WallpaperSource,
 {
-    pub async fn fetch(self) -> Result<Wallpaper<MemorySource<WebSource<A>>>, WallpaperError> {
+    type Origin = WebSource<A>;
+
+    async fn fetch(self) -> Result<Wallpaper<MemorySource<WebSource<A>>>, WallpaperError> {
         let bytes = reqwest::get(&self.source.image_url)
             .await?
             .bytes()
@@ -104,47 +137,63 @@ where
     }
 }
 
-impl<A> Wallpaper<WebSource<A>>
-where
-    WebSource<A>: WallpaperSource,
-{
-    pub async fn download(self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
-        let fetched_wallpaper = self.fetch().await?;
-        let other_data = fetched_wallpaper.source.origin.load_details().await?;
-        let downloaded_wallpaper = fetched_wallpaper.save().await?;
-
-        Ok(Wallpaper {
-            image: fetched_wallpaper.image,
-            tags: other_data.tags,
-            source: downloaded_wallpaper.source,
-        })
-    }
-}
-
-impl<A> Wallpaper<MemorySource<WebSource<A>>> {
-    pub async fn save(&self) -> Result<Wallpaper<LocalSource>, WallpaperError> {
+impl<A> Save for WebSource<A> {
+    async fn save(
+        mem_src: Wallpaper<MemorySource<Self>>,
+    ) -> Result<Wallpaper<LocalSource>, WallpaperError> {
         let conf = WallpaperConfig::get();
-        let setter_conf = &conf.setter;
-
-        let wallpapers_folder = setter_conf
+        let wallpapers_folder = conf
+            .setter
             .wallpapers_path
             .as_ref()
             .ok_or(WallpaperError::NoWallpapersFolder)?;
 
-        let filename = self.image.name.clone();
-        let mut path = wallpapers_folder.join(filename);
-
         std::fs::create_dir_all(wallpapers_folder)?;
 
-        if let Some(format) = self.image.format {
+        let mut path = wallpapers_folder.join(&mem_src.image.name);
+        if let Some(format) = mem_src.image.format {
             path.set_extension(format.extensions_str()[0]);
         }
-        std::fs::write(&path, &self.source.bytes)?;
+        std::fs::write(&path, &mem_src.source.bytes)?;
 
         Ok(Wallpaper {
-            image: self.image.clone(),
+            image: mem_src.image,
+            tags: mem_src.tags,
             source: LocalSource { path },
-            tags: self.tags.clone(),
+        })
+    }
+}
+
+// local fetch + save(ignored)
+
+impl Fetch for Wallpaper<LocalSource> {
+    type Origin = LocalSource;
+
+    async fn fetch(mut self) -> Result<Wallpaper<MemorySource<LocalSource>>, WallpaperError> {
+        let bytes = std::fs::read(&self.source.path)?;
+        if self.image.format.is_none() {
+            self.image.format = image::guess_format(&bytes).ok();
+        }
+
+        Ok(Wallpaper {
+            image: self.image,
+            tags: self.tags,
+            source: MemorySource {
+                origin: self.source,
+                bytes,
+            },
+        })
+    }
+}
+
+impl Save for LocalSource {
+    async fn save(
+        mem_src: Wallpaper<MemorySource<Self>>,
+    ) -> Result<Wallpaper<LocalSource>, WallpaperError> {
+        Ok(Wallpaper {
+            image: mem_src.image,
+            tags: mem_src.tags,
+            source: mem_src.source.origin,
         })
     }
 }

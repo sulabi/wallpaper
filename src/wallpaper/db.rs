@@ -43,7 +43,7 @@ fn create_tables(connection: &Connection) -> Result<()> {
                 ON DELETE CASCADE
         );
 
-        CREATE INDEX idx_collection_tag ON Collection(tag_id)
+        CREATE INDEX IF NOT EXISTS idx_collection_tag ON Collection(tag_id)
         ",
     )
 }

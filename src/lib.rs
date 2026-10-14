@@ -1,27 +1,19 @@
 mod wallpaper;
 
-use rusqlite::Connection;
-pub use wallpaper::searcher::query::SearchMode;
-
-pub use wallpaper::db;
+pub use rusqlite::Connection;
+pub use wallpaper::{db, searcher::query::SearchMode};
 use wallpaper::{
-    Wallpaper,
     error::WallpaperError,
-    searcher::{SearchRatio, WebSearcher, api::Wallhaven, query::SearchQuery},
+    searcher::{SearchRatio, Searcher, query::SearchQuery},
 };
 
 fn init_db() -> Result<Connection, WallpaperError> {
-    if let Some(data_dir) = dirs::data_dir() {
-        let folder = data_dir.join("wallpaper_app");
-        if !folder.exists() {
-            std::fs::create_dir(&folder)?;
-        }
-        let path = folder.join("wallpapers.db");
+    let data_dir = dirs::data_dir().ok_or(WallpaperError::DatabaseCreationError)?;
 
-        db::init(&path).map_err(WallpaperError::SqliteError)
-    } else {
-        Err(WallpaperError::DatabaseCreationError)
-    }
+    let folder = data_dir.join("wallpaper_app");
+    std::fs::create_dir_all(&folder)?;
+
+    db::init(&folder.join("wallpapers.db")).map_err(WallpaperError::SqliteError)
 }
 
 fn init_conf() -> Result<(), WallpaperError> {
@@ -34,19 +26,27 @@ pub fn init() -> Result<Connection, WallpaperError> {
     init_db()
 }
 
-pub async fn search_wallpapers(
-    mode: SearchMode,
-) -> Result<Vec<Wallpaper<WebSource<Wallhaven>>>, WallpaperError> {
-    let searcher = WebSearcher::new(Wallhaven);
-    let query = SearchQuery::new(mode, SearchRatio::All, "tag1");
+pub async fn search_wallpapers<T: WallpaperApi>(
+    params: SearchParams<T>,
+) -> Result<Vec<Wallpaper<T::Source>>, WallpaperError> {
+    let searcher = Searcher::new(params.search_api);
+    let query = SearchQuery::new(params.search_mode, SearchRatio::All);
 
-    let wallpapers = searcher.search(&query).await?;
-
-    Ok(wallpapers)
+    println!("doing.., {}", query.tags);
+    searcher.search(&query).await
 }
 
 pub use wallpaper::error::WallpaperError as Error;
-pub use wallpaper::setter::WallpaperSetter;
-pub use wallpaper::source::WallpaperSource;
+pub use wallpaper::{
+    setter::WallpaperSetter,
+    source::{Save, WallpaperSource},
+};
 
-use crate::wallpaper::{config::WallpaperConfig, source::WebSource};
+pub use crate::wallpaper::searcher::api;
+pub use crate::wallpaper::{
+    Wallpaper, config,
+    config::WallpaperConfig,
+    searcher,
+    searcher::{api::WallpaperApi, query::SearchParams},
+    setter, source,
+};
