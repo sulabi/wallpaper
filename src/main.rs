@@ -21,17 +21,8 @@ async fn main() -> Result<(), wallpaper::Error> {
     let source = prompt("web or local: ")?;
 
     match source.as_str() {
-        "web" => search_set(api::Wallhaven, query, &connection).await,
-        "local" => {
-            search_set(
-                api::Local {
-                    connection: &connection,
-                },
-                query,
-                &connection,
-            )
-            .await
-        }
+        "web" => search_set(api::Wallhaven, query, &connection, true).await,
+        "local" => search_set(api::Local::new(&connection), query, &connection, false).await,
         other => {
             eprintln!("unknown source: {other}");
             Ok(())
@@ -42,7 +33,12 @@ async fn main() -> Result<(), wallpaper::Error> {
 // TODO: integrate with clap
 // commands i want: populate (download many), interactive mode (view, favourite, download, more..)
 
-async fn search_set<T>(api: T, query: String, conn: &Connection) -> Result<(), wallpaper::Error>
+async fn search_set<T>(
+    api: T,
+    query: String,
+    conn: &Connection,
+    register: bool,
+) -> Result<(), wallpaper::Error>
 where
     T: WallpaperApi,
     Wallpaper<T::Source>: Fetch<Origin = T::Source>,
@@ -62,8 +58,11 @@ where
     println!("wallpaper: {:?}", mem.image.name);
     let mem = mem.set_wallpaper().await?;
 
-    let local = mem.save().await?;
-    println!("saving to db...");
-    db::add_wallpaper(conn, local)?;
+    if register {
+        let local = mem.save().await?;
+        println!("saving to db...");
+        db::add_wallpaper(conn, local)?;
+    }
+
     Ok(())
 }

@@ -15,6 +15,12 @@ pub struct Local<'a> {
     pub connection: &'a Connection,
 }
 
+impl<'a> Local<'a> {
+    pub fn new(connection: &'a Connection) -> Self {
+        Self { connection }
+    }
+}
+
 impl WallpaperApi for Local<'_> {
     type Source = LocalSource;
 
