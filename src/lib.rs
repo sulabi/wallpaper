@@ -32,7 +32,6 @@ pub async fn search_wallpapers<T: WallpaperApi>(
     let searcher = Searcher::new(params.search_api);
     let query = SearchQuery::new(params.search_mode, SearchRatio::All);
 
-    println!("doing.., {}", query.tags);
     searcher.search(&query).await
 }
 

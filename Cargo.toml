@@ -2,8 +2,14 @@
 name = "wallpaper"
 version = "0.1.0"
 edition = "2024"
+default-run = "wallpaper"
+
+[[bin]]
+name = "wallpaper"
+path = "src/bin/cli.rs"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 configfs = { version = "0.2.3", features = ["derive", "system-dirs"] }
 dirs = "7.0.0"
 image = "0.25.10"
