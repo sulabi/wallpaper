@@ -121,7 +121,7 @@ async fn search<T>(
 ) -> Result<(), wallpaper::Error>
 where
     T: WallpaperApi,
-    Wallpaper<T::Source>: Fetch<Origin = T::Source>,
+    Wallpaper<T::Source>: Fetch<Origin = T::Source> + WallpaperSetter,
     T::Source: AsWallpaperPath + Save,
 {
     let params = SearchParams::new(search_mode(query), api);
@@ -143,13 +143,14 @@ where
     }
 
     if let Some(wallpaper) = wallpapers.into_iter().next() {
-        // TODO: fix wallpapers from local going to temp
-        let mem = wallpaper.fetch().await?;
-        println!("Setting {}", mem.image.name);
-        let mem = mem.set_wallpaper().await?;
+        println!("Setting {}", wallpaper.image.name);
+
         if register {
+            let mem = wallpaper.fetch().await?.set_wallpaper().await?;
             let local = mem.save().await?;
             db::add_wallpaper(conn, local)?;
+        } else {
+            wallpaper.set_wallpaper().await?;
         }
     }
     Ok(())
