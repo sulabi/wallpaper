@@ -35,11 +35,15 @@ enum Command {
 
 #[derive(Args)]
 struct SearchArgs {
-    /// Search terms; omit to request random wallpapers
+    /// wallpaper search query; omit for random wallpapers
     query: Option<String>,
-    /// Search Wallhaven or the saved local library
+    /// search from wallhaven or from downloaded wallpapers
     #[arg(short, long, value_enum, default_value_t = Source::Web)]
     source: Source,
+
+    /// picks a random wallpaper
+    #[arg(short, long, default_value_t = false)]
+    random: bool,
 }
 
 #[derive(Clone, Copy, ValueEnum)]

@@ -13,7 +13,7 @@ impl<S: AsWallpaperPath> WallpaperSetter for Wallpaper<MemorySource<S>> {
         let tmpfile = tempfile::NamedTempFile::new()?;
         std::fs::write(tmpfile.path(), &self.source.bytes)?;
 
-        set_path(tmpfile.path(), self.source.origin.as_wallpaper_path())?;
+        set_wall_from_path(tmpfile.path(), self.source.origin.as_wallpaper_path())?;
 
         Ok(self)
     }
@@ -23,12 +23,12 @@ impl WallpaperSetter for Wallpaper<LocalSource> {
     type Source = LocalSource;
 
     async fn set_wallpaper(self) -> Result<Wallpaper<Self::Source>, WallpaperError> {
-        set_path(&self.source.path, self.source.as_wallpaper_path())?;
+        set_wall_from_path(&self.source.path, self.source.as_wallpaper_path())?;
         Ok(self)
     }
 }
 
-fn set_path(path: &Path, configured_path: WallpaperPath) -> Result<(), WallpaperError> {
+fn set_wall_from_path(path: &Path, configured_path: WallpaperPath) -> Result<(), WallpaperError> {
     println!("setting {}", path.display());
 
     // TODO: make this a wrapper and configurable for other OS
@@ -36,6 +36,11 @@ fn set_path(path: &Path, configured_path: WallpaperPath) -> Result<(), Wallpaper
     let status = std::process::Command::new("awww")
         .arg("img")
         .arg(path)
+        .envs([
+            ("AWWW_TRANSITION", "fade"),
+            ("AWWW_TRANSITION_DURATION", "1.1"),
+            ("AWWW_TRANSITION_FPS", "60"),
+        ])
         .status()?;
 
     if !status.success() {
