@@ -1,8 +1,12 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use configfs::ConfigFile;
 use std::process::ExitCode;
 use wallpaper::{
-    Connection, Save, SearchMode, SearchParams, Wallpaper, WallpaperApi, WallpaperSetter, api, db,
-    source::{AsWallpaperPath, Fetch},
+    Connection, Save, SearchMode, SearchParams, Wallpaper, WallpaperApi, WallpaperConfig,
+    WallpaperImage, WallpaperSetter, api,
+    config::WallpaperPath,
+    db,
+    source::{AsWallpaperPath, Fetch, LocalSource},
 };
 
 #[derive(Parser)]
@@ -21,7 +25,7 @@ enum Command {
     /// List matching wallpapers without downloading or setting them
     Search(SearchArgs),
     /// Set the first matching wallpaper and save web downloads to the library
-    Set(SearchArgs),
+    Set(SetArgs),
 
     /// Download matching Wallhaven wallpapers into the local library
     Populate {
@@ -31,6 +35,22 @@ enum Command {
         #[arg(short, long, default_value = "10", value_parser = clap::value_parser!(u32).range(1..))]
         count: u32,
     },
+}
+
+#[derive(Args)]
+struct SetArgs {
+    /// wallpaper search query; omit for random wallpapers
+    query: Option<String>,
+    /// search from wallhaven or from downloaded wallpapers
+    #[arg(short, long, value_enum)]
+    source: Option<Source>,
+
+    /// picks a random wallpaper
+    #[arg(short, long, default_value_t = false)]
+    random: bool,
+
+    #[arg(short, long, conflicts_with_all = ["random", "source", "query"], default_value_t = false)]
+    from_config: bool,
 }
 
 #[derive(Args)]
@@ -62,6 +82,7 @@ fn search_mode(query: Option<String>) -> SearchMode {
 #[tokio::main]
 async fn main() -> ExitCode {
     let cli = Cli::parse();
+
     match run(cli).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
@@ -73,6 +94,7 @@ async fn main() -> ExitCode {
 
 async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
     let connection = wallpaper::init()?;
+
     match cli.command {
         Command::Search(args) => match args.source {
             Source::Web => search(api::Wallhaven, args.query, &connection, false, false).await,
@@ -88,18 +110,50 @@ async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
             }
         },
         Command::Set(args) => match args.source {
-            Source::Web => search(api::Wallhaven, args.query, &connection, true, true).await,
-            Source::Local => {
-                search(
-                    api::Local::new(&connection),
-                    args.query,
-                    &connection,
-                    true,
-                    false,
-                )
-                .await
+            Some(Source::Web) | None if !args.from_config => {
+                search(api::Wallhaven, args.query, &connection, true, true).await
             }
+
+            Some(Source::Local) | None => {
+                println!("setting local");
+
+                let configured_wall = args
+                    .from_config
+                    .then(|| {
+                        let config = WallpaperConfig::get();
+                        println!("from config!");
+
+                        match config.wallpaper.as_ref() {
+                            Some(WallpaperPath::Path(path)) => Some(path.to_path_buf()),
+                            _ => None,
+                        }
+                    })
+                    .flatten();
+
+                if let Some(path) = configured_wall {
+                    println!("got config wall {}", path.display());
+                    let wallpaper = Wallpaper {
+                        source: LocalSource { path: path.clone() },
+                        image: WallpaperImage::from_path(&path)?,
+                        tags: Vec::new(),
+                    };
+
+                    wallpaper.set_wallpaper().await.map(|_| ())
+                } else {
+                    search(
+                        api::Local::new(&connection),
+                        args.query,
+                        &connection,
+                        true,
+                        false,
+                    )
+                    .await
+                }
+            }
+
+            _ => unreachable!("from_config can't be used with Source::Web"),
         },
+
         Command::Populate { query, count } => {
             let params = SearchParams::new(search_mode(query), api::Wallhaven);
             let wallpapers = wallpaper::search_wallpapers(params).await?;
@@ -138,8 +192,8 @@ where
     if !set {
         for wallpaper in wallpapers {
             let location = match wallpaper.source.as_wallpaper_path() {
-                wallpaper::config::WallpaperPath::Url(url) => url,
-                wallpaper::config::WallpaperPath::Path(path) => path.display().to_string(),
+                WallpaperPath::Url(url) => url,
+                WallpaperPath::Path(path) => path.display().to_string(),
             };
             println!("{}\t{location}", wallpaper.image.name);
         }

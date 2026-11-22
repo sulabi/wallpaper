@@ -1,11 +1,8 @@
 mod wallpaper;
 
 pub use rusqlite::Connection;
+use wallpaper::searcher::{SearchRatio, Searcher, query::SearchQuery};
 pub use wallpaper::{db, searcher::query::SearchMode};
-use wallpaper::{
-    error::WallpaperError,
-    searcher::{SearchRatio, Searcher, query::SearchQuery},
-};
 
 fn init_db() -> Result<Connection, WallpaperError> {
     let data_dir = dirs::data_dir().ok_or(WallpaperError::DatabaseCreationError)?;
@@ -43,8 +40,9 @@ pub use wallpaper::{
 
 pub use crate::wallpaper::searcher::api;
 pub use crate::wallpaper::{
-    Wallpaper, config,
+    Wallpaper, WallpaperImage, config,
     config::WallpaperConfig,
+    error::WallpaperError,
     searcher,
     searcher::{api::WallpaperApi, query::SearchParams},
     setter, source,
