@@ -44,21 +44,14 @@ pub struct WallpaperImage {
     pub metadata: Option<WallpaperDetails>,
 }
 
-impl Default for WallpaperImage {
-    fn default() -> Self {
-        WallpaperImage {
-            ratio: 0_f64,
-            format: None,
-            name: "".to_string(),
-            metadata: None,
-        }
-    }
-}
-
 impl WallpaperImage {
     pub fn from_path(path: &PathBuf) -> Result<WallpaperImage, WallpaperError> {
         let bytes = std::fs::read(path)?;
         let format = image::guess_format(&bytes).ok();
+
+        let image = image::load_from_memory(&bytes)?;
+        let ratio = image.width() as f64 / image.height() as f64;
+
         let file_name = path
             .file_name()
             .unwrap_or(&OsStr::from(""))
@@ -68,8 +61,9 @@ impl WallpaperImage {
         Ok(WallpaperImage {
             format,
             name: file_name,
-            metadata: None,
-            ratio: 0f64,
+            metadata: None, // no point resolving metadata from db
+            ratio,
         })
+        // TODO: save metadata in config
     }
 }
