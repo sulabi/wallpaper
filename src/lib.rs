@@ -4,7 +4,7 @@ pub use rusqlite::Connection;
 use wallpaper::searcher::{SearchRatio, Searcher, query::SearchQuery};
 pub use wallpaper::{db, searcher::query::SearchMode};
 
-fn init_db() -> Result<Connection, WallpaperError> {
+pub fn init_db() -> Result<Connection, WallpaperError> {
     let data_dir = dirs::data_dir().ok_or(WallpaperError::DatabaseCreationError)?;
 
     let folder = data_dir.join("wallpaper_app");
@@ -13,14 +13,8 @@ fn init_db() -> Result<Connection, WallpaperError> {
     db::init(&folder.join("wallpapers.db")).map_err(WallpaperError::SqliteError)
 }
 
-fn init_conf() -> Result<(), WallpaperError> {
+pub fn init_conf() -> Result<(), WallpaperError> {
     WallpaperConfig::setup()
-}
-
-pub fn init() -> Result<Connection, WallpaperError> {
-    init_conf()?;
-
-    init_db()
 }
 
 pub async fn search_wallpapers<T: WallpaperApi>(

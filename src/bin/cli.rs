@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use configfs::ConfigFile;
-use std::process::ExitCode;
+use std::{cell::OnceCell, process::ExitCode};
 use wallpaper::{
     Connection, Save, SearchMode, SearchParams, Wallpaper, WallpaperApi, WallpaperConfig,
     WallpaperImage, WallpaperSetter, api,
@@ -49,6 +49,7 @@ struct SetArgs {
     #[arg(short, long, default_value_t = false)]
     random: bool,
 
+    // sets a wallpaper from the configured path
     #[arg(short, long, conflicts_with_all = ["random", "source", "query"], default_value_t = false)]
     from_config: bool,
 }
@@ -82,9 +83,14 @@ fn search_mode(query: Option<String>) -> SearchMode {
 #[tokio::main]
 async fn main() -> ExitCode {
     let cli = Cli::parse();
+    let time = std::time::Instant::now();
 
     match run(cli).await {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(()) => {
+            println!("took {}ms", time.elapsed().as_millis());
+
+            ExitCode::SUCCESS
+        }
         Err(error) => {
             eprintln!("error: {error}");
             ExitCode::FAILURE
@@ -93,16 +99,27 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
-    let connection = wallpaper::init()?;
+    let connection = OnceCell::new();
+    let lazy_db = || -> Result<&Connection, wallpaper::Error> {
+        if connection.get().is_none() {
+            let _ = connection.set(wallpaper::init_db()?);
+        }
+
+        Ok(connection.get().expect("connected"))
+    };
+
+    wallpaper::init_conf()?;
 
     match cli.command {
         Command::Search(args) => match args.source {
-            Source::Web => search(api::Wallhaven, args.query, &connection, false, false).await,
+            Source::Web => search(api::Wallhaven, args.query, lazy_db()?, false, false).await,
             Source::Local => {
+                let connection = lazy_db()?;
+
                 search(
-                    api::Local::new(&connection),
+                    api::Local::new(connection),
                     args.query,
-                    &connection,
+                    connection,
                     false,
                     false,
                 )
@@ -111,7 +128,7 @@ async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
         },
         Command::Set(args) => match args.source {
             Some(Source::Web) | None if !args.from_config => {
-                search(api::Wallhaven, args.query, &connection, true, true).await
+                search(api::Wallhaven, args.query, lazy_db()?, true, true).await
             }
 
             Some(Source::Local) | None => {
@@ -140,10 +157,12 @@ async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
 
                     wallpaper.set_wallpaper().await.map(|_| ())
                 } else {
+                    let connection = lazy_db()?;
+
                     search(
-                        api::Local::new(&connection),
+                        api::Local::new(connection),
                         args.query,
-                        &connection,
+                        connection,
                         true,
                         false,
                     )
@@ -158,10 +177,11 @@ async fn run(cli: Cli) -> Result<(), wallpaper::Error> {
             let params = SearchParams::new(search_mode(query), api::Wallhaven);
             let wallpapers = wallpaper::search_wallpapers(params).await?;
             let mut saved = 0;
+
             for wallpaper in wallpapers.into_iter().take(count as usize) {
                 let local = wallpaper.fetch().await?.save().await?;
                 println!("Saved {}", local.source.path.display());
-                db::add_wallpaper(&connection, local)?;
+                db::add_wallpaper(lazy_db()?, local)?;
                 saved += 1;
             }
             println!("Saved {saved} wallpaper(s).");
